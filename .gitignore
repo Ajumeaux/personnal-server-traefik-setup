@@ -1,0 +1,5 @@
+.secrets
+acme/acme.json
+acme/acme.old.json
+ssh-reverse-proxy
+.keys

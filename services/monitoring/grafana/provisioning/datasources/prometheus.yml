@@ -1,0 +1,11 @@
+apiVersion: 1  # Version de l'API pour ce fichier de configuration.
+
+datasources:
+- name: Prometheus  # Nom de la source de données, utilisé pour l'identifier dans Grafana.
+  type: prometheus  # Type de la source de données, indique que c'est une instance Prometheus.
+  access: proxy  # Mode d'accès à la source de données. "proxy" signifie que les requêtes sont faites par le serveur Grafana.
+  orgId: 1  # Identifiant de l'organisation dans Grafana qui possèdera cette source de données.
+  url: http://prometheus:9090  # URL pour accéder à l'instance Prometheus. "prometheus:9090" est typiquement utilisé dans des configurations Docker où Prometheus s'exécute dans un service nommé "prometheus".
+  isDefault: true  # Définit cette source de données comme étant la source par défaut dans Grafana.
+  version: 1  # Version de la configuration de la source de données. C'est utile pour le versionnage des configurations.
+  editable: true  # Permet de modifier la configuration de la source de données depuis l'interface de Grafana.

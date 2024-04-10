@@ -1,0 +1,54 @@
+services:
+  focalboard-db:
+    image: postgres:latest  # Utilise la dernière version de l'image Docker PostgreSQL.
+    container_name: focalboard-postgres  # Nomme le conteneur pour faciliter sa gestion et référence.
+    restart: unless-stopped  # Politique de redémarrage du conteneur, ici il redémarre sauf s'il est explicitement arrêté.
+    environment:
+      POSTGRES_DB: focalboard  # Nom de la base de données créée par défaut.
+      POSTGRES_USER: username  # Nom d'utilisateur pour la base de données.
+      POSTGRES_PASSWORD: passsword  # Mot de passe pour l'utilisateur de la base de données.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Montage d'un volume pour persister les données de la base de données.
+    labels:
+      - "traefik.enable=false"  # Désactive Traefik pour ce conteneur, pas besoin de le rendre accessible depuis l'extérieur.
+    networks:
+      - internal-focalboard-bridge  # Connecte ce service à un réseau interne pour la communication avec Focalboard.
+
+  focalboard:
+    image: flyskype2021/focalboard  # Image Docker personnalisée pour Focalboard.
+    container_name: focalboard  # Nomme le conteneur.
+    restart: unless-stopped  # Politique de redémarrage du conteneur.
+    volumes:
+      - ./focalboard-config.json:/opt/focalboard/config.json  # Montage du fichier de configuration Focalboard.
+      - focalboard_data:/opt/focalboard/  # Volume pour persister les données de Focalboard.
+    labels:
+      - "traefik.enable=true"  # Active Traefik pour rendre Focalboard accessible depuis l'extérieur.
+      - "traefik.http.routers.focalboard.rule=Host(`focalboard.example.com`)"  # Règle pour router le trafic HTTP vers Focalboard.
+      - "traefik.http.services.focalboard.loadbalancer.server.port=8000"  # Port du service Focalboard pour le load balancer.
+      - "traefik.http.routers.focalboard.tls=true"  # Active TLS pour le routeur Focalboard.
+      - "traefik.http.routers.focalboard.tls.certresolver=porkbun"  # Utilise Porkbun comme résolveur de certificats TLS.
+      - "traefik.docker.network=traefik"  # Connecte le conteneur au réseau Traefik.
+      #- "traefik.http.middlewares.basic-auth.basicauth.usersfile=/run/secrets/focalboard_users"
+      #- "traefik.http.routers.focalboard.middlewares=basic-auth"
+    depends_on:
+      - focalboard-db  # S'assure que la base de données est lancée avant Focalboard.
+    ports:
+      - "8000:8000"  # Expose le port 8000 du conteneur sur le port 8000 de l'hôte.
+    networks:
+      - traefik  # Connecte ce service au réseau Traefik pour la gestion du trafic.
+      - internal-focalboard-bridge  # Connecte également ce service au réseau interne.
+
+volumes:
+  postgres_data:
+    name: services_postgres_data  # Nomme et déclare un volume pour les données PostgreSQL.
+    external: true  # Indique que le volume est géré en dehors de ce fichier Docker Compose.
+  focalboard_data:
+    name: services_focalboard_data  # Nomme et déclare un volume pour les données de Focalboard.
+    external: true  # Indique que le volume est géré en dehors de ce fichier Docker Compose.
+
+networks:
+  traefik:
+    external: true  # Connecte ce service au réseau Traefik externe existant pour la gestion du trafic.
+  internal-focalboard-bridge:
+    external: false  # Crée un nouveau réseau interne de type bridge pour la communication interne entre les services.
+    driver: bridge  # Utilise le driver bridge pour ce réseau.

@@ -1,0 +1,51 @@
+services:
+  prometheus:
+    image: prom/prometheus  # Utilise l'image Docker officielle de Prometheus.
+    container_name: prometheus  # Nomme le conteneur pour faciliter sa gestion.
+    volumes:
+      - ./prometheus-config.yml:/etc/prometheus/prometheus-config.yml  # Montage du fichier de configuration de Prometheus depuis l'hôte vers le conteneur.
+      - prometheus_data:/prometheus  # Utilise un volume nommé pour la persistance des données de Prometheus.
+    command:
+      - '--config.file=/etc/prometheus/prometheus-config.yml'  # Indique à Prometheus le fichier de configuration à utiliser.
+      - '--storage.tsdb.path=/prometheus'  # Définit le chemin pour le stockage des séries temporelles.
+    ports:
+      - "9090:9090"  # Expose le port 9090 du conteneur (utilisé par Prometheus) vers le même port sur l'hôte.
+    labels:
+        - "traefik.enable=true"  # Active l'intégration avec Traefik.
+        - "traefik.http.routers.prometheus.rule=Host(`prometheus.example.com`)"  # Définit la règle d'accès via un nom de domaine spécifique.
+        - "traefik.http.services.prometheus.loadbalancer.server.port=9090"  # Informe Traefik du port du service Prometheus.
+        - "traefik.docker.network=traefik"  # Spécifie le réseau Docker à utiliser avec Traefik.
+        - "traefik.http.routers.prometheus.tls=true"  # Active TLS pour le routeur Prometheus.
+        - "traefik.http.routers.prometheus.tls.certresolver=porkbun"  # Utilise Porkbun comme résolveur de certificat TLS.
+    restart: unless-stopped  # Redémarre le conteneur sauf si arrêté manuellement.
+    networks:
+      - traefik  # Connecte le service au réseau Traefik.
+
+  grafana:
+    image: grafana/grafana  # Utilise l'image Docker officielle de Grafana.
+    depends_on:
+      - prometheus  # Indique que Grafana nécessite que le service Prometheus soit démarré en premier.
+    volumes:
+      - ./grafana/provisioning/:/etc/grafana/provisioning/  # Montage du dossier de provisioning Grafana.
+      - grafana_data:/var/lib/grafana  # Utilise un volume nommé pour la persistance des données de Grafana.
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=password  # Définit le mot de passe de l'administrateur de Grafana (à changer).
+    labels:
+        - "traefik.enable=true"  # Active l'intégration avec Traefik pour Grafana.
+        - "traefik.http.routers.grafana.rule=Host(`grafana.example.com`)"  # Règle d'accès via un nom de domaine spécifique pour Grafana.
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"  # Informe Traefik du port du service Grafana.
+        - "traefik.docker.network=traefik"  # Spécifie le réseau Docker à utiliser avec Traefik pour Grafana.
+        - "traefik.http.routers.grafana.tls=true"  # Active TLS pour le routeur Grafana.
+        - "traefik.http.routers.grafana.tls.certresolver=porkbun"  # Utilise Porkbun comme résolveur de certificat TLS pour Grafana.
+    restart: unless-stopped  # Redémarre le conteneur sauf si arrêté manuellement.
+    networks:
+      - traefik  # Connecte le service au réseau Traefik.
+
+volumes:
+  prometheus_data:  # Définit un volume pour stocker les données de Prometheus.
+  grafana_data:  # Définit un volume pour stocker les données de Grafana.
+
+networks:
+  traefik:
+    external: true  # Indique que le réseau "traefik" est un réseau externe, déjà créé et géré en dehors de ce fichier.
+

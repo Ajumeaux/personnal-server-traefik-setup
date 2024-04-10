@@ -1,0 +1,27 @@
+services:
+  mc:
+    image: itzg/minecraft-server  # Utilise l'image Docker itzg/minecraft-server pour créer un serveur Minecraft.
+    container_name: mc  # Nom du conteneur Docker pour identification facile.
+    environment:
+      EULA: "TRUE"  # Accepte automatiquement l'EULA de Minecraft. Nécessaire pour démarrer le serveur.
+      VERSION: "1.17.1"  # Spécifie la version de Minecraft à utiliser.
+      MEMORY: "4G"  # Alloue 4GB de RAM au serveur Minecraft.
+      TYPE: "PAPER"  # Utilise PaperMC comme serveur, une variante optimisée de Spigot.
+      PLUGINS: |  # Définit une liste de plugins à télécharger et installer automatiquement.
+        https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot
+        https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot
+
+    volumes:
+      - ./mc-data:/data  # Montage d'un volume pour persister les données du serveur Minecraft.
+    ports:
+      - "25565:25565"  # Expose le port 25565 du conteneur (port par défaut de Minecraft) sur le même port de l'hôte.
+    labels:
+        - "traefik.enable=true"  # Active l'intégration avec Traefik pour ce service.
+        - "traefik.http.routers.mc.rule=Host(`minecraft.example.com`)"  # Configure une règle pour Traefik afin de router les requêtes pour `minecraft.example.com` vers ce service.
+        - "traefik.http.services.mc.loadbalancer.server.port=25565"  # Indique à Traefik que le service utilise le port 25565.
+        - "traefik.docker.network=traefik"  # Assure que le conteneur utilise le réseau Docker nommé 'traefik'.
+        - "traefik.http.routers.mc.tls=true"  # Active TLS pour le routeur Traefik, sécurisant ainsi l'accès au service.
+        - "traefik.http.routers.mc.tls.certresolver=porkbun"  # Utilise Porkbun comme résolveur de certificats TLS pour le domaine.
+    restart: unless-stopped  # Redémarre le conteneur sauf s'il est arrêté manuellement.
+    networks:
+      - traefik  # Connecte le service au réseau Docker nommé 'traefik'.

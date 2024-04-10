@@ -1,0 +1,60 @@
+services:
+  gitea-db:
+    image: postgres:14  # Utilise l'image Docker PostgreSQL version 14 comme base de données pour Gitea.
+    restart: always  # Redémarre automatiquement le conteneur en cas d'arrêt ou d'erreur.
+    environment:
+      - POSTGRES_USER=username  # Nom d'utilisateur pour l'accès à la base de données.
+      - POSTGRES_PASSWORD=password  # Mot de passe pour l'accès à la base de données.
+      - POSTGRES_DB=gitea  # Nom de la base de données spécifiquement pour Gitea.
+    networks:
+      - gitea  # Connecte ce service au réseau Docker 'gitea'.
+    volumes:
+      - ./postgres:/var/lib/postgresql/data  # Persiste les données de PostgreSQL en dehors du conteneur.
+
+  gitea:
+    image: gitea/gitea:latest  # Utilise la dernière version de l'image Docker Gitea.
+    container_name: gitea  # Nomme le conteneur pour faciliter sa gestion.
+    environment:
+      - USER_UID=1000  # UID de l'utilisateur exécutant Gitea dans le conteneur.
+      - USER_GID=1000  # GID de l'utilisateur exécutant Gitea.
+      - DB_TYPE=postgres  # Indique que Gitea utilisera PostgreSQL comme base de données.
+      - DB_HOST=gitea-db:5432  # Spécifie l'hôte (nom du service) et le port de la base de données.
+      - DB_NAME=gitea  # Nom de la base de données pour Gitea.
+      - DB_USER=username  # Nom d'utilisateur pour la base de données.
+      - DB_PASSWD=password  # Mot de passe pour la base de données.
+      - SSH_DOMAIN=gitea.example.com  # Domaine pour les connexions SSH à Gitea.
+
+    restart: always  # Redémarre automatiquement le conteneur en cas d'arrêt ou d'erreur.
+    networks:
+      - gitea  # Connecte ce service au réseau Docker 'gitea'.
+      - traefik  # Connecte également ce service au réseau Docker 'traefik' pour la gestion du trafic.
+    volumes:
+      - gitea_data:/data  # Volume pour persister les données de Gitea.
+      - /etc/timezone:/etc/timezone:ro  # Assure que le conteneur utilise le même fuseau horaire que l'hôte.
+      - /etc/localtime:/etc/localtime:ro  # Assure que le conteneur a la même heure locale que l'hôte.
+    depends_on:
+      - gitea-db  # S'assure que le service 'gitea-db' est lancé avant 'gitea'.
+    labels:
+      - "traefik.enable=true"  # Active l'intégration avec Traefik pour ce service.
+      - "traefik.http.routers.gitea.rule=Host(`gitea.example.com`)"  # Règle pour router les requêtes HTTP vers Gitea.
+      - "traefik.http.services.gitea.loadbalancer.server.port=3000"  # Port du service Gitea pour le load balancer de Traefik.
+      - "traefik.http.routers.gitea.tls=true"  # Active TLS pour le routeur Gitea.
+      - "traefik.http.routers.gitea.tls.certresolver=porkbun"  # Utilise Porkbun comme résolveur de certificats TLS.
+
+      - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"  # Règle pour router les connexions SSH, `*` indique qu'il accepte tout domaine.
+      - "traefik.tcp.routers.gitea-ssh.entrypoints=gitea_ssh"  # Entrypoint défini pour les connexions SSH à Gitea.
+      - "traefik.tcp.routers.gitea-ssh.service=gitea-ssh-svc"  # Nom du service pour le routage SSH dans Traefik.
+      - "traefik.tcp.services.gitea-ssh-svc.loadbalancer.server.port=22"  # Port du service pour les connexions SSH.
+
+      - "traefik.docker.network=traefik"  # Assure que le conteneur utilise le réseau Docker 'traefik'.
+
+networks:
+  gitea:
+    external: false  # Déclare un réseau Docker 'gitea' comme non externe, il sera créé par ce fichier Docker Compose.
+    driver: bridge # Utilise le driver de réseau 'bridge' pour le réseau 'gitea'.
+  traefik:
+    external: true # Indique que le réseau 'traefik' est un réseau externe, déjà créé et géré en dehors de ce fichier Docker Compose.
+
+volumes:
+  gitea_data: # Définit un volume nommé pour persister les données de Gitea.
+    driver: local # Utilise un volume local pour persister les données de Gitea.

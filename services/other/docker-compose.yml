@@ -1,0 +1,16 @@
+services:
+  whoami:
+    image: traefik/whoami  # Utilise l'image Docker "traefik/whoami" qui lance un simple serveur web affichant des infos sur le conteneur.
+    labels:
+      - "traefik.http.routers.whoami.rule=Host(`whoami.example.com`)"  # Définit une règle pour le routeur Traefik, indiquant que ce service doit être accessible via l'hôte "whoami.example.com".
+      - "traefik.http.services.whoami.loadbalancer.server.port=443"  # Spécifie le port du service auquel Traefik doit envoyer les requêtes, ici le port 443 pour HTTPS.
+      - "traefik.http.routers.whoami.tls=true"  # Active TLS (HTTPS) pour ce routeur, indiquant que le trafic doit être sécurisé.
+      - "traefik.http.routers.whoami.tls.certresolver=porkbun"  # Utilise le résolveur de certificats "porkbun" pour obtenir un certificat SSL pour ce service.
+    environment:
+      - "WHOAMI_PORT_NUMBER=443"  # Définit une variable d'environnement pour le conteneur, spécifiant le port sur lequel le service "whoami" doit écouter.
+    networks:
+      - traefik  # Connecte ce service au réseau Docker "traefik", qui doit être déjà défini.
+
+networks:
+  traefik:
+    external: true  # Indique que le réseau "traefik" est un réseau externe, déjà créé et géré en dehors de ce fichier `docker-compose`.

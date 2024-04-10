@@ -1,0 +1,17 @@
+{
+    "serverRoot": "http://localhost:8000",  // L'URL de base du serveur, utilisée pour construire des liens vers le serveur.
+    "port": 8000,  // Le port sur lequel le serveur écoutera.
+    "dbtype": "postgres",  // Le type de base de données utilisé, ici PostgreSQL.
+    "dbconfig": "postgres://username:password@focalboard-db:5432/focalboard?sslmode=disable&connect_timeout=10",  // La chaîne de connexion à la base de données, incluant le nom d'utilisateur, le mot de passe, l'hôte, le port, le nom de la base de données, le mode SSL et le délai de connexion.
+    "postgres_dbconfig": "dbname=focalboard sslmode=disable",  // Configuration spécifique à PostgreSQL, indiquant le nom de la base de données et le mode SSL.
+    "useSSL": false,  // Indique si le serveur doit utiliser SSL pour les connexions HTTP (non recommandé pour la production sans un proxy SSL).
+    "webpath": "./pack",  // Le chemin vers les fichiers statiques du serveur web.
+    "filespath": "./data/files",  // Le chemin où les fichiers téléversés seront stockés.
+    "telemetry": true,  // Active ou désactive la collecte de données de télémétrie.
+    "prometheus_address": ":8000",  // L'adresse et le port pour le serveur Prometheus, pour la collecte de métriques.
+    "session_expire_time": 2592000,  // Le temps d'expiration des sessions utilisateurs en secondes (30 jours ici).
+    "session_refresh_time": 18000,  // Le temps après lequel une session utilisateur est rafraîchie en secondes (5 heures ici).
+    "localOnly": false,  // Si vrai, le serveur n'acceptera que les connexions locales.
+    "enableLocalMode": true,  // Active le mode local, permettant à l'application de fonctionner sans accès Internet.
+    "localModeSocketLocation": "/var/tmp/focalboard_local.socket"  // L'emplacement du socket pour le mode local.
+}

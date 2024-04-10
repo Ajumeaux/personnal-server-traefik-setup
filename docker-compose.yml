@@ -1,0 +1,45 @@
+services:
+  reverse-proxy:
+    image: traefik:v3.0  # Utilisation de l'image Traefik version 3.0.
+    restart: unless-stopped  # Redémarre le service automatiquement sauf si arrêté manuellement.
+    command:
+      - --api.insecure=true  # Active l'API sans sécurité. À utiliser avec prudence.
+      - --providers.docker  # Déclare Docker comme fournisseur.
+      - --providers.docker.watch  # Traefik surveille les modifications dans les conteneurs Docker.
+      - --metrics.prometheus  # Active la collecte de métriques pour Prometheus.
+      - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0  # Définit les intervalles pour les métriques.
+      - --entrypoints.gitea_ssh.address=:22  # Point d'entrée pour SSH sur le port 22.
+      - --entrypoints.web.address=:80  # Point d'entrée pour le trafic HTTP sur le port 80.
+      - --entrypoints.websecure.address=:443  # Point d'entrée pour HTTPS sur le port 443.
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure  # Redirection de HTTP vers HTTPS.
+      - --certificatesresolvers.porkbun.acme.dnschallenge=true  # Active DNS Challenge avec Porkbun pour ACME.
+      - --certificatesresolvers.porkbun.acme.dnschallenge.provider=porkbun  # Fournisseur pour le DNS Challenge.
+      - --certificatesresolvers.porkbun.acme.email=example@gmail.com  # Email pour les notifications ACME.
+      - --certificatesresolvers.porkbun.acme.storage=/acme/acme.json  # Emplacement de stockage pour les certificats ACME.
+      - --log.level=DEBUG  # Niveau de journalisation défini sur DEBUG.
+      - --providers.file.directory=/config  # Dossier de configuration pour les fichiers statiques.
+      - --providers.file.watch=true  # Surveillance des modifications des fichiers de configuration.
+
+    ports:
+      - "22:22"  # Port SSH.
+      - "80:80"  # Port HTTP.
+      - "443:443"  # Port HTTPS.
+      - "8080:8080"  # Interface web de Traefik. À sécuriser ou supprimer ultérieurement.
+      - "25565:25565"  # Port pour un serveur Minecraft.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Permet à Traefik de communiquer avec l'API Docker.
+      - ./acme:/acme  # Stockage des données ACME pour les certificats SSL.
+    env_file:
+      - ./.secrets/.traefik-env  # Fichier pour les variables d'environnement.
+    secrets:
+      - focalboard_users  # Utilise un secret pour les utilisateurs de Focalboard.
+    networks:
+      - "traefik"  # Définit un réseau personnalisé pour Traefik.
+
+networks:
+  traefik:
+    name: "traefik"  # Nom du réseau personnalisé pour une meilleure découvrabilité.
+
+secrets:
+  focalboard_users:
+    file: ./.secrets/.focalboard_users  # Fichier contenant les secrets pour Focalboard.

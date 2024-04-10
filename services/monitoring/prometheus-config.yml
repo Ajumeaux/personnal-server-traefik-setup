@@ -1,0 +1,17 @@
+global:
+  scrape_interval:     15s  # Définit la fréquence à laquelle Prometheus récupère les données des cibles, ici toutes les 15 secondes.
+  evaluation_interval: 15s  # Définit la fréquence à laquelle les règles sont évaluées, également toutes les 15 secondes.
+
+  external_labels:
+      monitor: 'codelab-monitor'  # Ajoute un label externe à toutes les séries temporelles et alertes pour l'identification dans les systèmes externes.
+
+scrape_configs:
+  - job_name: 'traefik'  # Nom du job pour le scraping des métriques de Traefik.
+    static_configs:
+      - targets: ['reverse-proxy:8080']  # Cibles à scraper par Prometheus, ici l'instance Traefik sur le port 8080.
+
+  - job_name: 'prometheus'  # Nom du job pour le scraping des métriques de Prometheus lui-même.
+    static_configs:
+      - targets: ['prometheus:9090']  # Cibles à scraper, ici l'instance Prometheus sur le port 9090.
+
+
