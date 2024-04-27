@@ -1,0 +1,78 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    group_add: # by id as these may not exist within the container. Needed to provide permissions to the VAAPI Devices
+      - '107' #render
+      - '44' #video
+    # Network mode of 'host' exposes the ports on the host. This is needed for DLNA access.
+    networks:
+      - traefik
+    devices:
+      # VAAPI Devices
+      - /dev/dri/renderD128:/dev/dri/renderD128
+      - /dev/dri/card0:/dev/dri/card0
+    environment:
+      - JELLYFIN_PublishedServerUrl=https://netflicks.example.com
+    mem_limit: 8g
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      - ./media:/media
+      - jellyfin_data:/data
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`netflicks.example.com`)"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.jellyfin.tls=true"
+      - "traefik.http.routers.jellyfin.tls.certresolver=porkbun"
+      - 'traefik.http.routers.jellyfin.tls.domains=netflicks.ajumax.com'
+      - "traefik.http.routers.jellyfin.middlewares=authelia@docker"
+
+      - 'traefik.http.routers.jellyfin.middlewares=jellyfin-mw'
+  
+  qbittorrent:
+    # for debugging
+    #cap_add:
+      #- SYS_PTRACE
+    container_name: qbittorrent
+    environment:
+      #- PAGID=10000
+      #- PGID=1000
+      #- PUID=1000
+      - QBT_EULA=true
+      - QBT_VERSION=latest
+      #- TZ=UTC
+      #- UMASK=022
+    image: qbittorrentofficial/qbittorrent-nox:latest
+    ports:
+      # for bittorrent traffic
+      - 6881:6881/tcp
+      - 6881:6881/udp
+      # for WebUI
+    read_only: true
+    stop_grace_period: 30m
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./qbittorent/config:/config
+      - ./media/downloads:/downloads
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.example.com`)"
+      - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.qbittorrent.tls=true"
+      - "traefik.http.routers.qbittorrent.tls.certresolver=porkbun"
+      - "traefik.http.routers.qbittorrent.middlewares=authelia@docker"
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
+
+volumes:
+  jellyfin_data:
